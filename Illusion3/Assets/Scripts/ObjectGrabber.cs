@@ -5,12 +5,15 @@ public class ObjectGrabber : MonoBehaviour
     [Header("Configuracion")]
     public float distanciaReferencia = 4f;
     public float distanciaMaxima = 10f;
+    public float distanciaMinima = 1f;
+    public float velocidadRueda = 0.5f;
     public LayerMask layerGrabbable;
 
     private Camera camara;
     private GameObject objetoAgarrado;
     private Vector3 escalaOriginal;
     private float distanciaInicial;
+    private float distanciaActual;
 
     private Rigidbody rbAgarrado;
     private Collider colliderAgarrado;
@@ -38,7 +41,10 @@ public class ObjectGrabber : MonoBehaviour
         }
 
         if (objetoAgarrado != null)
+        {
+            AjustarDistancia();
             MantenerObjeto();
+        }
     }
 
     void IntentarAgarrar()
@@ -51,6 +57,7 @@ public class ObjectGrabber : MonoBehaviour
             objetoAgarrado = hit.collider.gameObject;
             escalaOriginal = objetoAgarrado.transform.localScale;
             distanciaInicial = hit.distance;
+            distanciaActual = hit.distance;
 
             rbAgarrado = objetoAgarrado.GetComponent<Rigidbody>();
             colliderAgarrado = objetoAgarrado.GetComponent<Collider>();
@@ -62,21 +69,20 @@ public class ObjectGrabber : MonoBehaviour
         }
     }
 
+    void AjustarDistancia()
+    {
+        float rueda = Input.GetAxis("Mouse ScrollWheel");
+        distanciaActual += rueda * velocidadRueda * 10f;
+        distanciaActual = Mathf.Clamp(distanciaActual, distanciaMinima, distanciaMaxima);
+    }
+
     void MantenerObjeto()
     {
         Ray ray = camara.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2));
-        RaycastHit hit;
-
-        Vector3 posicionObjetivo;
-
-        if (Physics.Raycast(ray, out hit, distanciaMaxima))
-            posicionObjetivo = hit.point;
-        else
-            posicionObjetivo = ray.origin + ray.direction * distanciaReferencia;
+        Vector3 posicionObjetivo = ray.origin + ray.direction * distanciaActual;
 
         objetoAgarrado.transform.position = posicionObjetivo;
 
-        float distanciaActual = Vector3.Distance(camara.transform.position, posicionObjetivo);
         float factor = distanciaActual / distanciaInicial;
         objetoAgarrado.transform.localScale = escalaOriginal * factor;
     }
